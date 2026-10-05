@@ -1,0 +1,18 @@
+{
+  "name": "gesia-auditoria",
+  "displayName": "Gesia — Expediente de auditoría (PRUEBAS)",
+  "version": "2.0.7",
+  "description": "CANAL DE PRUEBAS, no para clientes. Procedimientos de auditoría sobre el expediente de Gesia: estados financieros, memoria, saldos, diario, riesgos, investigación de la entidad y pruebas de muestreo de ForSampling. Dejan papeles en el expediente; concluye el auditor. Los terceros viajan anonimizados y las facturas se tachan en tu equipo antes de subirlas. Si solo tienes ForSampling, instala el de ForSampling. Requiere Windows. (PRUEBAS · MCP 1.24.5) (v2.0.7)",
+  "author": {
+    "name": "Ensys Consultores Informáticos, S.L."
+  },
+  "license": "Propietario",
+  "keywords": [
+    "gesia",
+    "auditoria",
+    "contabilidad",
+    "ensys",
+    "diario"
+  ],
+  "homepage": "https://github.com/Ensys-Consultores-Informaticos/ensys-plugins-pruebas"
+}

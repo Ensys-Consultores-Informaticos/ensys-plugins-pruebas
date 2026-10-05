@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITULO__</title>
+<style>
+/* Paleta validada con el validador de dataviz en modo claro y oscuro
+   (slots 1-3 categoricos + estados). No modificar los hex sin revalidar. */
+*{box-sizing:border-box}
+:root{
+  color-scheme:light;
+  --plane:#f9f9f7; --surface:#fcfcfb;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s7:#4a3aa7;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --seq1:#cde2fb;--seq2:#9ec5f4;--seq3:#6da7ec;--seq4:#3987e5;--seq5:#256abf;--seq6:#184f95;--seq7:#0d366b;
+  --hi:rgba(42,120,214,.08);
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --plane:#0d0d0d; --surface:#1a1a19;
+  --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s7:#9085e9;
+  /* En oscuro la rampa secuencial se invierte: lo cercano a cero recede hacia
+     la superficie, asi que el valor bajo es el paso mas oscuro. */
+  --seq1:#184f95;--seq2:#1c5cab;--seq3:#256abf;--seq4:#2a78d6;--seq5:#3987e5;--seq6:#6da7ec;--seq7:#9ec5f4;
+  --hi:rgba(57,135,229,.14);
+}
+html,body{margin:0;padding:0}
+body{background:var(--plane);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px 88px}
+header.top{padding:36px 0 6px;display:flex;justify-content:space-between;
+  align-items:flex-start;gap:24px;flex-wrap:wrap}
+.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:26px;line-height:1.2;margin:6px 0;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink2);font-size:13.5px;max-width:74ch}
+.btn{background:var(--surface);border:1px solid var(--border);color:var(--ink2);
+  border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hi);color:var(--ink)}
+/* --- sello de procedencia --- */
+.sello{margin-top:18px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 16px;font-size:12.2px;color:var(--ink2);
+  display:flex;gap:26px;flex-wrap:wrap}
+.sello div span{color:var(--muted);display:block;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.06em;font-weight:650}
+.sello b{color:var(--ink);font-weight:640}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:660;
+  border-radius:20px;padding:2px 9px;border:1px solid var(--border)}
+.pill.si{background:rgba(12,163,12,.12);color:var(--good)}
+.pill.no{background:rgba(208,59,59,.12);color:var(--crit)}
+/* --- hero --- */
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:22px 24px;margin-top:14px;display:grid;
+  grid-template-columns:minmax(230px,1fr) 2fr;gap:28px;align-items:center}
+@media(max-width:900px){.hero{grid-template-columns:1fr}}
+.hero .lab{font-size:11.5px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.06em}
+.hero .fig{font-size:46px;font-weight:650;letter-spacing:-.025em;line-height:1.04;margin:6px 0 4px}
+.hero .note{font-size:12.5px;color:var(--ink2)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);
+  border-radius:10px;overflow:hidden}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);padding:12px 14px}
+.kpi .k{font-size:11.5px;color:var(--muted);font-weight:650}
+.kpi .v{font-size:19px;font-weight:640;letter-spacing:-.015em;margin-top:2px}
+.kpi .d{font-size:11.5px;color:var(--ink2);margin-top:1px}
+/* --- secciones --- */
+h2{font-size:17px;font-weight:650;margin:40px 0 3px;letter-spacing:-.005em}
+.lede{color:var(--ink2);font-size:13.5px;margin:0 0 15px;max-width:88ch}
+nav.saltos{margin:16px 0 0;display:flex;gap:7px;flex-wrap:wrap}
+nav.saltos a{font-size:12px;text-decoration:none;color:var(--ink2);background:var(--surface);
+  border:1px solid var(--border);border-radius:7px;padding:5px 10px}
+nav.saltos a:hover{background:var(--hi);color:var(--ink)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+@media(max-width:1000px){.g2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px 14px;min-width:0}
+.card>header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.card h3{font-size:14.5px;font-weight:640;margin:0}
+.card .cs{font-size:12.2px;color:var(--ink2);margin:4px 0 12px;max-width:82ch}
+.card .cs b{color:var(--ink);font-weight:620}
+.tbtn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;
+  font:inherit;font-size:10.5px;padding:3px 7px;cursor:pointer;white-space:nowrap}
+.tbtn:hover{color:var(--ink)}
+.tbtn[aria-pressed="true"]{background:var(--hi);color:var(--ink)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:12px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:2.5px;display:inline-block}
+svg{display:block;width:100%;overflow:visible}
+.tick{font-size:10.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+.dlab{font-size:10.5px;fill:var(--ink2);font-variant-numeric:tabular-nums;font-weight:600}
+.hit{fill:transparent;cursor:default}
+/* --- tarjetas de hechos relevantes --- */
+.finds{display:grid;grid-template-columns:repeat(auto-fill,minmax(366px,1fr));gap:14px}
+.find{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px 14px;border-left:3px solid var(--axis);display:flex;flex-direction:column}
+.find.critico{border-left-color:var(--crit)}
+.find.alto{border-left-color:var(--serious)}
+.find.medio{border-left-color:var(--warn)}
+.find.bajo{border-left-color:var(--s1)}
+.find.correcto{border-left-color:var(--good)}
+.find .badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;
+  font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.find .badge i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.find h3{font-size:15px;font-weight:640;margin:8px 0 6px;line-height:1.32}
+.find p{margin:0 0 10px;font-size:13.2px;color:var(--ink2)}
+.find p b{color:var(--ink);font-weight:640}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chip{font-size:11.5px;background:var(--hi);color:var(--ink);border-radius:6px;
+  padding:3px 8px;font-variant-numeric:tabular-nums;border:1px solid var(--border)}
+.find .act{margin-top:auto}
+.find .act a{font-size:11.5px;text-decoration:none;color:var(--ink2);
+  background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px}
+.find .act a:hover{background:var(--hi);color:var(--ink)}
+/* --- fila de filtros --- */
+.filtros{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:0 0 15px;
+  padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);font-weight:650}
+select,input[type=text]{background:var(--surface);border:1px solid var(--border);
+  color:var(--ink);border-radius:8px;padding:6px 9px;font:inherit;font-size:12.5px;
+  min-width:120px;max-width:240px}
+.festado{font-size:12px;color:var(--ink2);margin-left:auto;align-self:center}
+.festado b{color:var(--ink);font-variant-numeric:tabular-nums}
+/* --- tablas ordenables --- */
+th.srt{cursor:pointer;user-select:none}
+th.srt:hover{color:var(--ink)}
+.tsearch{display:flex;justify-content:flex-end;margin:6px 0 0}
+.tsearch input{max-width:220px}
+.marca{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;color:#fff;
+  white-space:nowrap;margin-right:3px}
+.marca.fds{background:#a8532a} .marca.red{background:#8a6100}
+.marca.mat{background:var(--crit)} .marca.dup{background:#6d2fa8}
+/* --- avisos --- */
+.aviso{border-left:3px solid var(--warn);background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:13px 16px;font-size:13px;color:var(--ink2);margin:0 0 14px}
+.aviso.crit{border-left-color:var(--crit)}
+.aviso.ok{border-left-color:var(--good)}
+.aviso b{color:var(--ink)}
+.aviso .t{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+  font-weight:700;color:var(--ink2);display:block;margin-bottom:4px}
+/* --- tablas --- */
+.tv{display:none;margin-top:8px;max-height:340px;overflow:auto;
+  border:1px solid var(--border);border-radius:8px}
+.tv.on{display:block}
+.tv.always{display:block}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{position:sticky;top:0;background:var(--surface);font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--muted);font-weight:650;z-index:2}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--hi)}
+.est{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:5px;color:#fff;white-space:nowrap}
+.est.ok{background:var(--good)} .est.triv{background:#8a6100} .est.mat{background:var(--crit)}
+.est.calc{background:var(--muted)}
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:13px}
+footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);
+  color:var(--muted);font-size:11.5px;line-height:1.6}
+#tip{position:fixed;z-index:100;pointer-events:none;opacity:0;visibility:hidden;
+  transition:opacity .1s;background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;padding:9px 11px;box-shadow:0 6px 22px rgba(0,0,0,.16);
+  font-size:12px;min-width:150px;max-width:320px}
+#tip .tt{font-size:11.5px;color:var(--muted);font-weight:650;margin-bottom:5px}
+#tip .tr{display:flex;align-items:baseline;gap:8px;margin-top:3px}
+#tip .tv2{font-weight:660;font-variant-numeric:tabular-nums;color:var(--ink);margin-left:auto}
+#tip .tn{color:var(--ink2)}
+.hm-cell{cursor:default}
+</style>
+</head>
+<body>
+<div id="tip" role="status" aria-live="polite"></div>
+<div class="wrap">
+<header class="top">
+  <div>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="titulo"></h1>
+    <p class="sub" id="subtitulo"></p>
+  </div>
+  <button class="btn" id="temaBtn">◐ Tema</button>
+</header>
+
+<div class="sello" id="sello"></div>
+<div class="hero" id="hero"></div>
+<nav class="saltos">
+  <a href="#conciliacion">Conciliación con el expediente</a>
+  <a href="#actividad">Actividad del ejercicio</a>
+  <a href="#punteo">Punteo y partidas abiertas</a>
+  <a href="#atipicos">Apuntes atípicos</a>
+  <a href="#contrato">Contrato del diario</a>
+</nav>
+
+<h2 id="hechos">Hechos relevantes del ejercicio <span id="cnt-hechos"></span></h2>
+<p class="lede">Deducidos de los datos, con la severidad anclada a la importancia
+relativa del encargo. Cada tarjeta lleva las cifras que la sostienen y enlaza a la
+sección donde comprobarla.</p>
+<div class="finds" id="finds"></div>
+
+<h2 id="conciliacion">Conciliación del diario con los saldos del expediente</h2>
+<p class="lede" id="lede-conc"></p>
+<div id="avisos-conc"></div>
+<div class="filtros" id="filtros-conc">
+  <div class="fld"><label for="fEstado">Estado de la conciliación</label>
+    <select id="fEstado">
+      <option value="">Todos los estados</option>
+      <option value="DESCUADRE">Solo descuadres materiales</option>
+      <option value="descuadre">Solo descuadres triviales</option>
+      <option value="conforme">Solo conformes</option>
+      <option value="calculada">Solo calculadas por Gesia</option>
+    </select></div>
+  <div class="fld"><label for="fCuenta">Buscar cuenta o nombre</label>
+    <input type="text" id="fCuenta" placeholder="p. ej. 430, proveedores…"></div>
+  <div class="festado" id="estadoConc"></div>
+</div>
+<div class="grid g2">
+  <div class="card">
+    <header><h3>Saldos por grupo de cuenta</h3>
+      <button class="tbtn" data-tv="tv-conc" aria-pressed="false">⊞ datos</button></header>
+    <p class="cs" id="cs-conc"></p>
+    <div class="legend" id="lg-conc"></div>
+    <div id="ch-conc"></div>
+    <div class="tv" id="tv-conc"></div>
+  </div>
+  <div class="card">
+    <header><h3>Ajustes de auditoría propuestos</h3>
+      <button class="tbtn" data-tv="tv-aj" aria-pressed="false">⊞ datos</button></header>
+    <p class="cs" id="cs-aj"></p>
+    <div id="ch-aj"></div>
+    <div class="tv" id="tv-aj"></div>
+  </div>
+</div>
+
+<h2 id="actividad">Actividad del ejercicio</h2>
+<p class="lede" id="lede-act"></p>
+<div class="filtros" id="filtros-act">
+  <div class="fld"><label for="fM1">Desde (mes)</label><select id="fM1"></select></div>
+  <div class="fld"><label for="fM2">Hasta (mes)</label><select id="fM2"></select></div>
+  <div class="fld"><label>Atajos</label>
+    <div style="display:flex;gap:5px">
+      <button class="btn" data-tri="0">Año</button>
+      <button class="btn" data-tri="1">T1</button>
+      <button class="btn" data-tri="2">T2</button>
+      <button class="btn" data-tri="3">T3</button>
+      <button class="btn" data-tri="4">T4</button>
+    </div></div>
+  <div class="festado" id="estadoAct"></div>
+</div>
+<div class="grid g2">
+  <div class="card">
+    <header><h3>Volumen movido por mes</h3>
+      <button class="tbtn" data-tv="tv-mes" aria-pressed="false">⊞ datos</button></header>
+    <p class="cs" id="cs-mes"></p>
+    <div id="ch-mes"></div>
+    <div class="tv" id="tv-mes"></div>
+  </div>
+  <div class="card">
+    <header><h3>Perfil semanal</h3>
+      <button class="tbtn" data-tv="tv-dow" aria-pressed="false">⊞ datos</button></header>
+    <p class="cs" id="cs-dow"></p>
+    <div class="legend"><span><i class="sw" style="background:var(--s1)"></i>Días laborables</span><span><i class="sw" style="background:var(--s2)"></i>Fin de semana</span></div>
+    <div id="ch-dow"></div>
+    <div class="tv" id="tv-dow"></div>
+  </div>
+</div>
+<div class="card" style="margin-top:14px">
+  <header><h3>Calendario de actividad</h3>
+    <button class="tbtn" data-tv="tv-cal" aria-pressed="false">⊞ datos</button></header>
+  <p class="cs" id="cs-cal"></p>
+  <div class="legend" id="lg-cal"></div>
+  <div id="ch-cal"></div>
+  <div class="tv" id="tv-cal"></div>
+</div>
+<div class="card" style="margin-top:14px">
+  <header><h3>Tipo de asiento</h3>
+    <button class="tbtn" data-tv="tv-tipo" aria-pressed="false">⊞ datos</button></header>
+  <p class="cs" id="cs-tipo"></p>
+  <div id="ch-tipo"></div>
+  <div class="tv" id="tv-tipo"></div>
+</div>
+
+<h2 id="punteo">Punteo, plazos de liquidación y partidas abiertas</h2>
+<p class="lede" id="lede-punt"></p>
+<div id="avisos-punt"></div>
+<div id="bloque-punteo"></div>
+
+<h2 id="atipicos">Apuntes atípicos</h2>
+<p class="lede" id="lede-atip"></p>
+<div id="bloque-atipicos"></div>
+
+<h2 id="contrato">Contrato del diario</h2>
+<p class="lede">Comprobaciones ejecutadas sobre el fichero antes de calcular un solo
+indicador. Si alguna hubiera abortado, este panel no existiría.</p>
+<div class="card">
+  <div class="tv always" id="tv-contrato" style="max-height:460px"></div>
+</div>
+
+<footer id="pie"></footer>
+</div>
+<script>window.__PANEL__ = __DATOS__;</script>
+<script>
+__JS__
+</script>
+</body>
+</html>

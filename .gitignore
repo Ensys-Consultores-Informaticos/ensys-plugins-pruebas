@@ -1,0 +1,26 @@
+# Este repositorio es SOLO de distribucion: aqui no entra codigo fuente,
+# ni documentacion de desarrollo, ni datos de ningun expediente. El
+# desarrollo vive en el repositorio de utilidades.
+__pycache__/
+*.pyc
+
+# Nada de expedientes ni contabilidad de clientes, por si acaso.
+*.gs3
+*.smn
+*.mdb
+*.xlsx
+*.docx
+
+# Notas y disenos internos: no se publican.
+DISENO.md
+NOTAS.md
+CLAUDE.md
+docs/
+
+# Credenciales de publicacion. NUNCA al repositorio.
+publicar.ini
+
+# Artefactos de publicacion: se regeneran con publicar.py
+/gesia-auditoria-*.zip
+/marketplace.json
+/sha256.txt

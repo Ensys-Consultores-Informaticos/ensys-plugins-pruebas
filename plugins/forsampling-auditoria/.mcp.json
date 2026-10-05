@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "forsampling": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/server/gesia_mcp-1.24.5.exe",
+      "args": [],
+      "env": {
+        "ENSYS_PLUGIN": "forsampling"
+      }
+    }
+  }
+}
