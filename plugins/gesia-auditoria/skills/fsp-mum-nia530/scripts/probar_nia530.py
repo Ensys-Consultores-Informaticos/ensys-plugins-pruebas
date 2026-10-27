@@ -111,7 +111,7 @@ def fixture(d: str, tokenizada: bool = True, con_ctx: bool = True) -> dict:
                        "PoblacionNumElementos": "6255", "PoblacionNumErrores": "0", "PoblacionTasaErrores": "0",
                        "RiesgoGeneralId": "10", "ErrorTolerableValor": "0", "ErrorTolerableTasa": "6,5", "ErrorTolerableIndicador": "2",
                        "CriterioSelId": "3", "TamanoMuestraDeseado": "7", "MetodoSelId": "3", "CoefETGesia": ""},
-        "descodificado": {"riesgo_general": {"riesgo_general_pct": 10, "confianza_pct": 90, "tipo_trabajo": "Normal",
+        "descodificado": {"riesgo_general": {"riesgo_general_pct": 10, "confianza_pct": 90, "categoria_confianza": "Normal",
                                              "factor_confianza": "2,30", "fuente": "TM_Confianza"},
                           "criterio_seleccion": "Proporcional al tamaño (PPT)", "metodo_seleccion": "Aleatorio",
                           "error_tolerable_definido_por": "tasa",

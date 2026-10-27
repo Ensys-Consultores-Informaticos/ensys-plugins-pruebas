@@ -591,8 +591,7 @@ MCP en el equipo del auditor.
 - **No decide los ajustes del estado de flujos: propone el importe de cuatro**, y solo de
   aquellas cuya regla se pudo contrastar contra un expediente real. Las demás las rellena el
   auditor con el criterio que trae cada plantilla.
-- **No escribe la propuesta en Gesia.** El MCP solo lee. Cuando el API tenga escritura,
-  entrará igual: no aprobada y firmada como Asistente IA.
+- **No escribe la propuesta en Gesia.** El MCP solo lee.
 - **No hace la memoria.**
 - **No compara con el ejercicio anterior más allá de lo que el expediente guarda.** El saldo
   del cliente solo existe del ejercicio corriente. Si el auditor quiere la conciliación de un

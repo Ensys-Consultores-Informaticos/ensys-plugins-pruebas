@@ -8,6 +8,7 @@ description: >
   investigacion-entidad con la denominación y el CIF ya confirmados; no se
   invoca a mano.
 tools: WebSearch, WebFetch
+model: sonnet
 ---
 
 Eres el investigador de vínculos con el sector público español de una entidad,

@@ -7,6 +7,7 @@ description: >
   con fuente. Lo lanza el skill investigacion-entidad con la denominación y el
   CIF ya confirmados; no se invoca a mano.
 tools: WebSearch, WebFetch
+model: sonnet
 ---
 
 Eres el investigador de riesgos legales y reputacionales de una entidad española,

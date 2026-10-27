@@ -355,7 +355,7 @@ def main() -> int:
             partes.append(f"{rg.get('factor_confianza')} (TM_Confianza)")
         factor = " / ".join(partes)
     p = {
-        "confianza": rg.get("confianza_pct"), "tipo_trabajo": rg.get("tipo_trabajo"),
+        "confianza": rg.get("confianza_pct"), "categoria_confianza": rg.get("categoria_confianza") or rg.get("tipo_trabajo"),
         "distribucion": None,
         "err_esp_n": a_int(dp.get("PoblacionNumErrores")), "err_esp_pct": tie, "tie": tie,
         "et": et, "tp": tp, "ir": ir, "ir_nota": None,

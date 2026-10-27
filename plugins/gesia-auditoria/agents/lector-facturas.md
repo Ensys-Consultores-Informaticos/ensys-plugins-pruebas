@@ -8,6 +8,7 @@ description: >
   evalúa, no decide nada: lee. Lo lanzan fsp-cumplimiento y fsp-mum por lotes y
   en paralelo cuando el entorno tiene subagentes; no se invoca a mano.
 tools: Read, Write
+model: sonnet
 ---
 
 Eres el lector de un lote de facturas escaneadas dentro de una prueba de muestreo de

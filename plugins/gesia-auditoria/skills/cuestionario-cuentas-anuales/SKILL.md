@@ -31,8 +31,9 @@ contenido de la memoria** contra el PDF del cliente; las cifras del expediente �
 resultados, patrimonio neto y flujos— las revisa `estados-financieros`, que no necesita PDF.
 
 Si la petición no distingue, **pregunta antes de tocar nada** y ofrece las dos. La pista más
-fiable: **sin PDF del cliente este skill no puede trabajar**, así que si no hay PDF a la vista,
-casi seguro te están pidiendo el otro.
+fiable: **sin PDF del cliente este skill no puede trabajar**, y el otro no lo necesita. Esa pista
+sirve para distinguir los dos skills, **no para ir a buscar el PDF**: si es este, el PDF lo da el
+auditor (paso 1).
 
 ---
 
@@ -104,12 +105,18 @@ DATOS="/mnt/user-data/uploads/<carpeta conectada>/_tmp_cowork"
 
 ## Secuencia
 
-### Paso 1 — Expediente
+### Paso 1 — Expediente, y pedir las cuentas anuales
 
 ```
 configurar(perfil = "cuestionario-cuentas-anuales")
 contexto_expediente()
 ```
+
+**Pide ya el PDF de las cuentas anuales**, en este paso, junto al expediente: puede subirlo o
+decirte dónde está. Mientras lo localiza, sigues con el paso 2. **No lo busques tú**: ni en las
+tablas de Gesia ni recorriendo la carpeta del expediente. El PDF lo tiene el auditor, y buscarlo
+tarda y no aporta nada (medido: el modelo se ponía a buscarlo en Gesia antes de pedirlo). Se pide
+y se espera; en el paso 3 se confirma.
 
 **El perfil va lo primero**: marca el comienzo del procedimiento, y desde ahí el MCP lleva
 la cuenta de lo que se facilita a la herramienta, que es lo que el papel de trabajo dirá en su
@@ -170,10 +177,10 @@ pídele la referencia al usuario**. No elijas tú.
 >    anuales» de 23. Si la consulta devuelve varias, **pregunta cuál**, o dilo y
 >    quédate con la de más filas; lo que no vale es coger la primera en silencio.
 
-### Paso 3 — Pedir y preparar las cuentas anuales
+### Paso 3 — Confirmar y preparar las cuentas anuales
 
-**Sin el PDF no se responde nada, y el PDF lo indica el usuario.** Si no te ha dicho cuál es,
-pregúntaselo —puede subirlo o indicarte dónde está— **aunque veas un candidato obvio en la
+**Sin el PDF no se responde nada, y el PDF lo indica el usuario.** Si todavía no te ha dicho
+cuál es, vuelve a pedírselo —puede subirlo o indicarte dónde está— **aunque veas un candidato obvio en la
 carpeta del expediente**: un borrador sin firmar, las cuentas del ejercicio anterior o una
 versión reformulada tienen el mismo aspecto, y contestar contra el documento equivocado da un
 cuestionario entero que parece bueno.

@@ -404,7 +404,7 @@ def generar(S: dict, generado: str) -> Document:
     tabla(doc, [4.6, 4.4, 4.2, 3.8], ["Parámetro", "Valor", "Origen / campo", "Observación"], [
         ["Tipo de muestreo", "Estadístico, por unidades monetarias (MUM)", "FS · Muestreos.Tipo", ""],
         ["Nivel de confianza / riesgo de muestreo", PEND("FS") if nulo(conf) else f"{conf} % / {100 - float(conf):g} %",
-         "FS · RiesgoGeneralId → TM_Confianza", f"Tipo de trabajo «{P['tipo_trabajo']}»" if P.get("tipo_trabajo") else ""],
+         "FS · RiesgoGeneralId → TM_Confianza", f"Categoría de confianza «{P['categoria_confianza']}»" if P.get("categoria_confianza") else ""],
         ["Distribución", Pend("No se guarda en los ficheros de ForSampling"), "FS · no consta", "Figura solo en el informe emitido"],
         ["Errores esperados en la población", PEND("FS") if nulo(P.get("err_esp_n")) else f"{P['err_esp_n']} / {pct(P.get('err_esp_pct'))}",
          "FS · DatosPSMum", "" if nulo(P.get("tie")) else f"Tie = {pct(P['tie'])}"],
