@@ -43,7 +43,7 @@ Tres columnas por elemento, con los nombres que usa ForSampling:
 | Columna | Qué es |
 |---|---|
 | `SaldoAuditoria` | lo que el documento sostiene para ese apunte |
-| `ErrorAuditoria` | `Saldo − SaldoAuditoria`. Positivo: los libros dicen de más |
+| `ErrorAuditoria` | `|Saldo| − |SaldoAuditoria|`, en valor absoluto como lo guarda ForSampling. Positivo: los libros dicen de más, también en una población de saldo acreedor (ventas): −5.403,96 en libros con factura de 5.200 es +203,96 |
 | `ErrorAuditoriaTasa` | el error sobre el saldo, en tanto por ciento |
 
 **Lo que no hace, y no es un olvido:**
@@ -177,6 +177,12 @@ tercero; la saco del diario si me indicas dónde está el .smn del ejercicio com
 diario solo existe fuera de ForSampling —también en Excel—, puede importarlo en ForSampling,
 que lo guarda como `.smn` en esa carpeta.
 
+**Para identificar el diario no instales nada** —ni `access-parser` ni otro lector de Access, ni
+`pip install` de ningún tipo—: el diario lo mide el MCP en el equipo del auditor, y en el
+contenedor no hay nada que abrir. El 28/10/2026 una sesión instaló un lector en la máquina
+virtual para mirar un `.smn` y lo dejó instalado. Si la propuesta del MCP no basta, pregunta al
+auditor.
+
 Pásalo con `configurar(smn_file = "<ruta>")`. Si no lo tiene o no lo sabe, **sigue**: la muestra
 saldrá con tokens de reserva —los nombres no salen del equipo igual— y el papel lo hace constar.
 Y si ofrece algo que no es un `.smn` —un Excel de la contabilidad—, el MCP lo rechaza sin tocar
@@ -257,8 +263,8 @@ DATOS="$TRABAJO"
 # $DATOS: es de solo lectura, y el skill escribe ahi facturas.json (y roles.json).
 # Ademas, el staging cuelga los ficheros de una subcarpeta con el NOMBRE de la carpeta
 # conectada, asi que la ruta subida NO es la que uno anticipa:
-#   /mnt/user-data/uploads/<carpeta conectada>/_tmp_cowork/muestra.json
-# Receta: exportar a _tmp_cowork en la carpeta conectada, subirla, y copiar de ahi a $DATOS.
+#   /mnt/user-data/uploads/<carpeta conectada>/_tmp_cowork/fsp-mum/muestra.json
+# Receta: exportar a _tmp_cowork\fsp-mum en la carpeta conectada, subirla, y copiar de ahi a $DATOS.
 DATOS="$TRABAJO/datos"; mkdir -p "$DATOS"   # dentro del de ESTA ejecución; ahi se copia lo subido
 ```
 Si `device_stage_files` falla por permisos, pide acceso con `device_request_folder_access` sobre
@@ -267,9 +273,11 @@ y díselo al auditor.
 **El escenario habitual en Cowork**, para no volver a razonarlo cada sesión: el MCP corre en
 el equipo del usuario y los scripts en el contenedor de la nube, así que **no comparten
 disco**. Ahí la receta es fija: exportar dentro de la carpeta conectada del expediente, subir,
-y trabajar con la copia del sandbox. Reutiliza siempre la **misma** carpeta temporal
-(`_tmp_cowork`) en vez de crear una por ejecución: `limpiar_exportaciones()` borra los
-ficheros pero no la carpeta, y quedan directorios vacíos por ahí.
+y trabajar con la copia del sandbox. Exporta siempre a **`_tmp_cowork\fsp-mum`**, la carpeta de este procedimiento, y no a
+`_tmp_cowork` a secas: fsp-mum y fsp-cumplimiento exportan los mismos nombres —`muestra.json`,
+`parametros.json`, `evaluacion.json`— y el 28/10/2026, con los dos a la vez, uno pisó los
+ficheros del otro y la limpieza dejó `_tmp_cowork` con datos del cliente. No crees una por
+ejecución: `limpiar_exportaciones` borra los ficheros y las carpetas que quedan vacías dentro.
 
 ### Paso 3 — Preparar y leer los documentos
 
@@ -319,7 +327,7 @@ equipo del auditor, y a la nube solo suben esas imágenes, nunca los PDF:
 
 ```
 preparar_facturas(carpeta = "<la carpeta>",
-                  destino = "<raíz de la carpeta conectada>\\_tmp_cowork\\facturas",
+                  destino = "<raíz de la carpeta conectada>\\_tmp_cowork\\fsp-mum\\facturas",
                   modo = "tachadas" | "claras",
                   terceros = [<los tokens de tercero de la muestra exportada, sin repetir>],
                   numeros = [<los números de documento de la muestra, sin repetir>])
@@ -388,7 +396,7 @@ según auditoría: no se transcribe a `facturas.json`.
 
 Deja en `destino` un JPEG por página a 100 ppp y un `manifiesto.json` que
 `preparar_documentos.py` lee tal cual: **sube esa carpeta dentro del mismo `$DATOS` del paso 2**<!-- solo-cowork -->
-(en Cowork, `device_stage_files` sobre `_tmp_cowork\facturas`; queda como `$DATOS/facturas/`. Si
+(en Cowork, `device_stage_files` sobre `_tmp_cowork\fsp-mum\facturas`; queda como `$DATOS/facturas/`. Si
 falla por permisos, `device_request_folder_access` sobre la raíz de la carpeta conectada y se
 repite **una vez**; si vuelve a fallar, para y díselo al auditor)<!-- /solo-cowork -->.
 **No es otro `$DATOS`**: `muestra.json`, `parametros.json` y `facturas/` conviven en el mismo
@@ -763,7 +771,7 @@ si la prueba pasa. Nada de eso sale de este papel.
 **Los temporales.** **`limpiar_exportaciones(procedimiento = "fsp-mum")`**, siempre con el
 `procedimiento`: así borra solo lo que exportó este procedimiento (y lo abandonado hace más de 12
 horas), no lo de otra conversación que use el mismo servidor con otro perfil. Sin él toma el
-perfil activo, que puede haberlo cambiado la otra. `limpiar_exportaciones` borra la muestra, los parámetros y la evaluación exportados (si con un MCP anterior escribiste tú `parametros.json` desde `obtener_entidad`, ese no lo borra: bórralo aparte, y en una carpeta conectada puede pedir permiso de borrado) y, desde el MCP 1.14.3, **también las imágenes y el `manifiesto.json` que `preparar_facturas` dejó en `_tmp_cowork\facturas`** (con un MCP anterior quedan ahí: dilo al auditor con la ruta<!-- solo-cowork:alt=, y en este canal bórralas tú, que compartes disco con el auditor) -->, que en Cowork no tienes shell en su equipo)<!-- /solo-cowork -->.
+perfil activo, que puede haberlo cambiado la otra. `limpiar_exportaciones` borra la muestra, los parámetros y la evaluación exportados (si con un MCP anterior escribiste tú `parametros.json` desde `obtener_entidad`, ese no lo borra: bórralo aparte, y en una carpeta conectada puede pedir permiso de borrado) y, desde el MCP 1.14.3, **también las imágenes y el `manifiesto.json` que `preparar_facturas` dejó en `_tmp_cowork\fsp-mum\facturas`** (con un MCP anterior quedan ahí: dilo al auditor con la ruta<!-- solo-cowork:alt=, y en este canal bórralas tú, que compartes disco con el auditor) -->, que en Cowork no tienes shell en su equipo)<!-- /solo-cowork -->.
 `facturas.json`<!-- solo-cowork --> y las copias del sandbox<!-- /solo-cowork --> los escribiste
 tú: van con el directorio de trabajo. Los PDF no se copian a ningún sitio.
 

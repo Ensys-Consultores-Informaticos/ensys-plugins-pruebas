@@ -33,10 +33,11 @@ porcentaje se recalculan solos, que es justo lo que va a hacer al revisar el
 papel. La misma cifra se calcula ademas en Python para lo que se imprime al
 ejecutar y para comparar con lo que el auditor ya tenga evaluado.
 
-  Error = Saldo - SaldoAuditoria, la definicion de ForSampling, medida en el
-  esquema y respetada tal cual. Positivo = de mas en libros. El % es
-  |Error| / |Saldo| x 100, tambien como lo guarda ForSampling, asi que siempre
-  sale positivo.
+  Error = |Saldo| - |SaldoAuditoria|, como lo guarda ForSampling: en VALOR
+  ABSOLUTO, para que positivo sea de mas en libros tambien en una poblacion
+  acreedora. Hasta el 28/10/2026 se restaba con el signo contable y en ventas
+  salia al reves (prueba 48 del ejemplo: +203,96 en ForSampling, -203,96 aqui).
+  El % es |Error| / |Saldo| x 100, asi que siempre sale positivo.
 
 Las dos van envueltas en IFERROR: si el auditor deja la celda con texto, o el
 campo principal se queda a cero, la celda se ve EN BLANCO en vez de con un
@@ -185,6 +186,32 @@ def _anchos(ws, anchos: dict[int, float]) -> None:
         ws.column_dimensions[get_column_letter(col)].width = w
 
 
+# Las columnas de importe de la poblacion: ForSampling las guarda como texto con coma decimal
+# («5403,96») y entraban asi al papel, junto a las de la zona C ya en numero (F10 del 28/10/2026).
+# Por el nombre y no por el contenido: CTA1, ASIENTO o APUNTE tambien parecen numeros.
+_NOMBRES_IMPORTE = ("debe", "haber", "saldo", "importe", "total", "base", "cuota")
+
+
+def _es_col_importe(nombre) -> bool:
+    n = str(nombre).lower()
+    return any(n == k or n.startswith(k) or n.endswith(k) for k in _NOMBRES_IMPORTE)
+
+
+def error_tolerable(params: dict) -> float | None:
+    """El error tolerable de la prueba, o None si no se localiza: nunca 0.
+
+    ForSampling lo define por valor o por tasa (ErrorTolerableIndicador). Por tasa, el valor
+    guardado es 0 y el importe es la tasa sobre la poblacion: la prueba 48 del ejemplo decia
+    «error tolerable 0,00» cuando era 617.310,65 (28/10/2026). Desde el MCP 1.28.1 `parametros`
+    lo trae resuelto en descodificado.error_tolerable; con uno anterior solo vale el valor."""
+    resuelto = ((params.get("descodificado") or {}).get("error_tolerable") or {})
+    v = parse_importe(resuelto.get("importe")) if isinstance(resuelto, dict) else None
+    if v:
+        return v
+    v = parse_importe((params.get("parametros") or {}).get("ErrorTolerableValor"))
+    return v or None
+
+
 def _eur(v: float | None) -> str:
     if v is None:
         return "—"
@@ -215,7 +242,7 @@ def _hoja(wb: Workbook, evaluados: list[dict], cols: dict, params: dict, generad
         return
 
     pr = params.get("parametros") or {}
-    et = parse_importe(pr.get("ErrorTolerableValor"))
+    et = error_tolerable(params)
 
     col_pob = [c for c in evaluados[0]["fila"].keys() if c.lower() not in ("seleccionado",)]
     col_principal = cols.get("importe")
@@ -251,14 +278,14 @@ def _hoja(wb: Workbook, evaluados: list[dict], cols: dict, params: dict, generad
                 f"{_dia(params.get('FechaInicioAuditoria'))} — {_dia(params.get('FechaFinAuditoria'))} · "
                 f"unidad de muestreo {pr.get('UnidadMuestreo') or '—'} · población "
                 f"{pr.get('PoblacionNumElementos') or '—'} elementos · error tolerable de la prueba "
-                f"{_eur(et)} · generado {generado}")
+                f"{_eur(et) if et else 'no localizado'} · generado {generado}")
     ws["A2"].font = Font(name=FONT, size=9)
     ws["A3"] = ("Propuesta del asistente: localiza el documento de cada elemento y mide lo que sostiene, "
                 "en el término con el que contabiliza esta población. El auditor adopta o cambia cada importe. "
                 "El error y el % son fórmulas: al cambiar el valor según auditoría se recalculan.")
     ws["A3"].font = Font(name=FONT, italic=True, size=9, color="595959")
-    ws["A4"] = ("Error = campo principal − valor según auditoría, como lo define ForSampling: positivo es de "
-                "más en libros. Amarillo: hay diferencia, o el elemento no se ha podido medir. Este papel NO "
+    ws["A4"] = ("Error = |campo principal| − |valor según auditoría|, como lo calcula ForSampling: positivo es "
+                "de más en libros, también en una población de saldo acreedor. Amarillo: hay diferencia, o el elemento no se ha podido medir. Este papel NO "
                 "proyecta el error a la población, no lo compara con el error tolerable y no suma los errores "
                 "entre sí: eso lo hace ForSampling, y los errores por exceso y por defecto no se cancelan."
                 + _frase_dudosas(evaluados, cols))
@@ -282,7 +309,7 @@ def _hoja(wb: Workbook, evaluados: list[dict], cols: dict, params: dict, generad
         fecha_libros = fecha_doc = None
         for k in col_pob:
             v = f.get(k)
-            if k == col_principal:
+            if k == col_principal or (_es_col_importe(k) and parse_importe(v) is not None):
                 v = parse_importe(v)
             elif k == cols.get("fecha"):
                 fecha_libros = parse_fecha(v)
@@ -303,7 +330,7 @@ def _hoja(wb: Workbook, evaluados: list[dict], cols: dict, params: dict, generad
         valores.append(f"={L(col_saldo_pob)}{fila}" if col_saldo_pob else None)
         valores.append(e["saldo_auditoria"])
         if e["saldo_auditoria"] is not None and col_saldo_pob:
-            valores.append(f'=IFERROR({L(c_saldo)}{fila}-{L(c_valor)}{fila},"")')
+            valores.append(f'=IFERROR(ABS({L(c_saldo)}{fila})-ABS({L(c_valor)}{fila}),"")')
             valores.append(f'=IFERROR(ABS({L(c_error)}{fila})'
                            f'/ABS({L(c_saldo)}{fila})*100,"")')
         else:

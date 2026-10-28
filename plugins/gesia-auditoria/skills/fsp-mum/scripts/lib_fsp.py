@@ -551,12 +551,15 @@ def _cuadra_calculo(fac: dict) -> str:
 
 
 def _numero_fila(fila: dict, cols: dict) -> str:
+    # Desde el MCP 1.28.1, si el tercero se tomo del CONCEPTO, el numero que llevaba viene aparte
+    # en NumeroEnConcepto: el concepto ya es un token y buscarle un numero daria la cuenta.
+    nec = str(fila.get("NumeroEnConcepto") or "").strip()
     if "documento" not in cols:
-        return ""
+        return nec
     bruto = fila.get(cols["documento"])
     col = cols["documento"].lower()
     if col in ("concepto", "descripcinconcepto"):
-        return numero_en_texto(bruto)
+        return nec or numero_en_texto(bruto)
     return "" if bruto is None else str(bruto).strip()
 
 

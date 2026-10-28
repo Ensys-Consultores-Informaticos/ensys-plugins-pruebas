@@ -9,9 +9,13 @@ que puede salir mal en una MUM, que no es lo mismo que en una de cumplimiento:
   E3  sin documento en la carpeta                                 -> sin medir
   E4  contabilizado por el TOTAL, documento que lo sostiene       -> error 0
   E5  INGRESO con saldo negativo y documento que lo sostiene      -> error 0
-  E6  ingreso negativo con diferencia                             -> error negativo
+  E6  ingreso negativo, libros de mas (8.000 frente a 7.900)      -> error POSITIVO, +100
   E7  documento sin total legible y libros con IVA                -> pista de IVA
   E8  sin importe en la poblacion                                 -> sin medir
+  E11 ingreso negativo, libros de menos (977,36 frente a 1.000)   -> error negativo, -22,64
+
+E6 y E11 son los dos elementos con diferencia de la prueba 48 de ventas del ejemplo de
+ForSampling: alli el auditor guardo +203,96 y -22,64. El error va sobre los absolutos.
 
 Y las reglas que no se pueden romper: el termino de comparacion sale de la
 propia muestra, los errores NO se netean, y lib_fsp.py es el mismo fichero que
@@ -61,6 +65,9 @@ MUESTRA = [
     {"GA1Poblacion_ID": "10", "Seleccionado": "True", "Repeticiones": "1", "Fecha": "09/12/25 0:00:00",
      "CuentaContable": "60000001", "DescripcinApunte": "ZETA", "Saldo": "8400", "Acreedor": "ZETA, S.L.",
      "LineasAsiento": 2, "ImporteAsiento": 10500.0, "IdsAsiento": "10, 12"},
+    {"GA1Poblacion_ID": "11", "Seleccionado": "True", "Repeticiones": "1", "Fecha": "27/12/25 0:00:00",
+     "CuentaContable": "70000000", "DescripcinApunte": "CLIENTE TRES", "Saldo": "-977,36",
+     "Acreedor": "CLIENTE TRES, S.L."},
 ]
 
 FACTURAS = [
@@ -80,6 +87,9 @@ FACTURAS = [
     # E6: ingreso, el documento dice 7.900 y los libros 8.000
     {"fichero": "6 - CLIENTE DOS FV-77.pdf", "proveedor": "CLIENTE DOS, S.L.", "numero": "FV-77",
      "fecha": "01/09/2025", "base": "7900,00", "iva": "1659,00", "total": "9559,00"},
+    # E11: ingreso, el documento dice 1.000 y los libros 977,36: de menos en libros
+    {"fichero": "11 - CLIENTE TRES FV-90.pdf", "proveedor": "CLIENTE TRES, S.L.", "numero": "FV-90",
+     "fecha": "27/12/2025", "base": "1000,00", "iva": "210,00", "total": "1210,00"},
     # E9: el documento sostiene la SUMA del asiento (10.000), no esta linea (8.000)
     {"fichero": "9 - EPSILON E-55.pdf", "proveedor": "EPSILON", "numero": "E-55",
      "fecha": "04/12/2025", "base": "10000,00", "iva": "2100,00", "total": "12100,00"},
@@ -124,7 +134,7 @@ def main() -> int:
     for e in ev:
         e["observacion"] = observacion_mum(e)
     por_id = {e["fila"]["GA1Poblacion_ID"]: e for e in ev}
-    e1, e2, e3, e4, e5, e6, e7, e8, e9, e10 = (por_id[str(i)] for i in range(1, 11))
+    e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11 = (por_id[str(i)] for i in range(1, 12))
 
     # -- el termino de comparacion sale de la muestra, no del plan contable
     ok(termino_mayoritario(cruce["filas"]) == "base",
@@ -190,8 +200,12 @@ def main() -> int:
        "E4: un elemento contabilizado por el total casa por el total aunque la muestra vaya por base")
     ok(e5["error"] == 0.0 and e5["saldo_auditoria"] == -5000.0,
        "E5: ingreso negativo -> el importe segun auditoria conserva el signo del saldo")
-    ok(e6["saldo_auditoria"] == -7900.0 and e6["error"] == -100.0,
-       "E6: ingreso con diferencia -> error = Saldo - SaldoAuditoria, con su signo")
+    ok(e6["saldo_auditoria"] == -7900.0 and e6["error"] == 100.0 and e6["tasa"] == 1.25,
+       "E6: ingreso con libros de mas -> valor de auditoria con su signo (-7.900) y error +100, como ForSampling")
+    ok(e11["saldo_auditoria"] == -1000.0 and e11["error"] == -22.64 and e11["tasa"] == 2.32,
+       "E11: ingreso con libros de menos -> error -22,64 y tasa 2,32 (prueba 48: lo que guardo el auditor)")
+    ok("de menos en libros" in e11["observacion"],
+       "E11: y la observacion dice de menos")
     ok("de mas en libros" in e6["observacion"].replace("á", "a"),
        "E6: y la redaccion no se lia con el signo: compara magnitudes")
     ok(e7["error"] == 2100.0 and "IVA del 21 %" in e7["nota"],
@@ -201,14 +215,14 @@ def main() -> int:
 
     # -- el recuento no netea NUNCA
     r = recuento(ev)
-    ok(r["elementos"] == 10 and r["repeticiones"] == 12,
-       "el recuento cuenta 10 elementos y 12 unidades de muestreo con las repeticiones")
-    ok(r["n_exceso"] == 2 and r["suma_exceso"] == 2550.0 and r["n_defecto"] == 1 and r["suma_defecto"] == -100.0,
-       "exceso y defecto van POR SEPARADO: 2 por exceso suman 2.550,00 y 1 por defecto -100,00")
+    ok(r["elementos"] == 11 and r["repeticiones"] == 13,
+       "el recuento cuenta 11 elementos y 13 unidades de muestreo con las repeticiones")
+    ok(r["n_exceso"] == 3 and r["suma_exceso"] == 2650.0 and r["n_defecto"] == 1 and r["suma_defecto"] == -22.64,
+       "exceso y defecto van POR SEPARADO, tambien en ingresos: 3 por exceso suman 2.650,00 y 1 por defecto -22,64")
     ok("neto" not in r and not any("neto" in k for k in r),
        "y no existe ninguna cifra de error neto: netear una MUM esconde las incorrecciones")
-    ok(r["sin_medir"] == 3 and r["con_documento"] == 8,
-       "tres quedan sin medir -sin documento, sin importe, y el asiento partido que no cuadra- y ocho tienen documento")
+    ok(r["sin_medir"] == 3 and r["con_documento"] == 9,
+       "tres quedan sin medir -sin documento, sin importe, y el asiento partido que no cuadra- y nueve tienen documento")
 
     # -- comparacion con el auditor
     comp = comparar_con_auditor_mum(ev, EVALUACION_AUDITOR, cols)
@@ -247,8 +261,8 @@ def main() -> int:
     crv = cruzar(VENTAS, F_VENTAS, colv)
     evv = evaluar_mum(crv, colv)
     e_dif = next(e for e in evv if e["fila"]["POBLACION_ID"] == "2")
-    ok(e_dif["factura"] is not None and e_dif["error"] == -265.44,
-       "el elemento con diferencia real se localiza por tercero y fecha, y sale como error de 265,44")
+    ok(e_dif["factura"] is not None and e_dif["error"] == 265.44,
+       "el elemento con diferencia real se localiza por tercero y fecha, y sale como error de +265,44 (libros de mas)")
     ok(not crv["facturas_sin_fila"] and not crv["candidatos_sueltos"],
        "no quedan ni elementos sin documento ni documentos sobrantes")
 
@@ -355,6 +369,19 @@ def main() -> int:
         _wb = _WB()
         _gp._hoja(_wb, ev, cols, _params, "2026-09-08")
         _ws = _wb.active
+        # el error tolerable: por tasa ForSampling guarda 0 en el valor (prueba 48, 28/10/2026)
+        ok(_gp.error_tolerable({"parametros": {"ErrorTolerableValor": "0", "ErrorTolerableTasa": "5"},
+                                "descodificado": {"error_tolerable": {"importe": 617310.65}}}) == 617310.65
+           and _gp.error_tolerable({"parametros": {"ErrorTolerableValor": "0"}}) is None
+           and _gp.error_tolerable(_params) == 5000.0,
+           "el error tolerable sale del MCP resuelto; sin el, el valor; y si es 0, no se localiza (nunca «0,00»)")
+        _w0 = _WB(); _gp._hoja(_w0, ev, cols, {**_params, "parametros": {"ErrorTolerableValor": "0"}}, "2026-10-28")
+        ok("error tolerable de la prueba no localizado" in str(_w0.active["A2"].value),
+           "y la cabecera lo dice en vez de poner 0,00")
+        ok(_gp._es_col_importe("DEBE") and _gp._es_col_importe("HABER") and _gp._es_col_importe("ImporteAsiento")
+           and not _gp._es_col_importe("ASIENTO") and not _gp._es_col_importe("CTA3")
+           and not _gp._es_col_importe("LineasAsiento"),
+           "las columnas de importe de la poblacion se reconocen por el nombre, no las de codigos")
         _banda = [c.value for c in _ws[6] if c.value]
         ok([str(x)[:1] for x in _banda] == ["A", "B", "C", "D"],
            "el papel lleva las cuatro bandas de zona: muestra, documento, prueba y cruce")
@@ -372,8 +399,8 @@ def main() -> int:
            "el campo principal de la zona C REFERENCIA el de la zona A: el saldo tiene un solo origen")
         _fe = _ws.cell(row=8, column=_i["Error"]).value
         _cs, _cv = _L(_i["VRL (muestra)"]), _L(_i["Valor Auditoría (doc)"])
-        ok(_fe == f'=IFERROR({_cs}8-{_cv}8,"")',
-           "el error es formula Saldo - Valor auditoria, y envuelta en IFERROR")
+        ok(_fe == f'=IFERROR(ABS({_cs}8)-ABS({_cv}8),"")',
+           "el error es formula |Saldo| - |Valor auditoria|, como ForSampling, y envuelta en IFERROR")
         _fp = _ws.cell(row=8, column=_i["% error"]).value
         ok(isinstance(_fp, str) and _fp.startswith("=IFERROR(") and "ABS(" in _fp
            and _fp.endswith('*100,"")'),
@@ -461,7 +488,7 @@ def main() -> int:
                 # las comprobaciones dicen la verdad del papel: el fixture tiene dos elementos sin
                 # documento y uno en que la herramienta da 0 y el auditor puso error
                 _loc = next((t for t in _txt if "documento localizado" in t), "")
-                ok(_loc.startswith("· ATENCIÓN") and "2 de 10" in _loc,
+                ok(_loc.startswith("· ATENCIÓN") and "2 de 11" in _loc,
                    "la comprobacion de documentos dice ATENCIÓN con los dos sin documento, no que esten todos")
                 ok(any(t.startswith("· ATENCIÓN: Frente a la evaluación") for t in _txt)
                    and any("la base imponible" in t and t.startswith("· Término") for t in _txt),

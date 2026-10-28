@@ -9,8 +9,15 @@ los dos skills. Aquí solo está lo que cambia: una MUM no evalúa atributos, mi
 Tres columnas por elemento, con los nombres que usa ForSampling:
 
     SaldoAuditoria       lo que el documento sostiene para ese apunte
-    ErrorAuditoria       Saldo - SaldoAuditoria  (positivo: los libros dicen de más)
-    ErrorAuditoriaTasa   el error sobre el saldo, en tanto por ciento
+    ErrorAuditoria       |Saldo| - |SaldoAuditoria|  (positivo: los libros dicen de más)
+    ErrorAuditoriaTasa   |error| sobre |saldo|, en tanto por ciento
+
+**El error va en valor absoluto, y el importe según auditoría con el signo del saldo.** Es lo que
+guarda ForSampling: en una población de ventas -saldos acreedores, en negativo- un apunte de
+-5.403,96 con factura de 5.200,00 lleva SaldoAuditoria -5.200 y ErrorAuditoria +203,96, de más en
+libros. Restar con el signo contable daba -203,96 y la invertía: el auditor que copiara la columna
+a ForSampling cambiaba una sobrevaloración por una infravaloración (prueba 48 del ejemplo de
+ForSampling, 28/10/2026).
 
 **Lo que este módulo no hace, y no es un olvido:** no proyecta el error a la
 población, no lo compara con el error tolerable, no suma los errores entre sí y
@@ -39,6 +46,13 @@ TERMINOS = ("total", "base", "neto")
 NOMBRE_TERMINO = {"total": "el total de la factura",
                   "base": "la base imponible",
                   "neto": "el neto a pagar tras la retención"}
+
+
+def _error_y_tasa(saldo: float, saldo_aud: float) -> tuple[float, float | None]:
+    """Error y tasa como los calcula ForSampling: sobre valores absolutos, para que el signo diga
+    de más o de menos en libros sea la población deudora o acreedora."""
+    error = round(abs(saldo) - abs(saldo_aud), 2)
+    return error, (round(abs(error) / abs(saldo) * 100.0, 2) if saldo else None)
 
 
 def _valor(fac: dict, termino: str) -> float | None:
@@ -145,8 +159,7 @@ def evaluar_mum(cruce: dict, cols: dict) -> list[dict]:
             usado = termino or "total"
             saldo_aud = _valor(fac, usado)
             saldo_aud = saldo_aud if saldo >= 0 else -saldo_aud
-            error = round(saldo - saldo_aud, 2)
-            tasa = round(error / saldo * 100.0, 2) if saldo else None
+            error, tasa = _error_y_tasa(saldo, saldo_aud)
             nota = "importe aplicable declarado a mano en facturas.json"
         elif c["importe"] in TERMINOS:
             # Casa: el documento sostiene el saldo contabilizado, no hay error.
@@ -177,11 +190,10 @@ def evaluar_mum(cruce: dict, cols: dict) -> list[dict]:
                 nota = f"no se lee {NOMBRE_TERMINO[termino]} en el documento"
             else:
                 usado = termino
-                # El signo del saldo manda: en una poblacion de ingresos los
-                # importes vienen en negativo y el error tiene que seguirlos.
+                # El importe segun auditoria lleva el signo del saldo -en una poblacion de
+                # ingresos vienen en negativo-; el error, no: va sobre los absolutos.
                 saldo_aud = v if saldo >= 0 else -v
-                error = round(saldo - saldo_aud, 2)
-                tasa = round(error / saldo * 100.0, 2) if saldo else None
+                error, tasa = _error_y_tasa(saldo, saldo_aud)
                 pista = _pista_iva(error, fac) if error else ""
                 if pista:
                     nota = pista
