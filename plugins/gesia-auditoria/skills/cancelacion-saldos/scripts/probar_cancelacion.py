@@ -802,6 +802,17 @@ def main() -> int:
     else:
         print("OK  lib_uso_ia.py identico en los " + str(len(otras) + 1) + " skills que lo llevan")
 
+    # la pregunta del modo de pago, segun el lado (registro del 28/10/2026)
+    import reconocer as _rec
+    _lados = (_rec._lado(pd.DataFrame({"CUENTA": ["40000001", "41000002"]})),
+              _rec._lado(pd.DataFrame({"CUENTA": ["43000001", "43600000"]})),
+              _rec._lado(pd.DataFrame({"CUENTA": ["43000001", "40000002"]})))
+    if _lados != ("proveedores", "clientes", ""):
+        fallos.append("reconocer: el lado del extracto sale " + str(_lados))
+    else:
+        print("OK  reconocer: la pregunta del modo de pago se redacta por el lado (paga a proveedores / "
+              "cobra a clientes)")
+
     # el directorio temporal de los papeles de prueba: se quedaba en el TEMP del sistema
     # en cada ejecucion (nueve carpetas el 20/10/2026). Datos sinteticos, pero no se dejan
     import shutil

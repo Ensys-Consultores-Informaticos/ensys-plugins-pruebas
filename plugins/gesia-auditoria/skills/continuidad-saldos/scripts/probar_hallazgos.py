@@ -197,6 +197,10 @@ def _probar_compensadas(aqui: Path, trabajo: Path, comprobar) -> None:
         capture_output=True, text=True, encoding="utf-8",
     )
     comprobar("sintetico: comparar.py termina bien", res.returncode == 0)
+    comprobar("sintetico: la pantalla dice que importe lleva cada tipo -la diferencia es apertura "
+              "menos cierre, la sin apertura es el saldo al cierre- (registro del 28/10/2026)",
+              "importe = apertura − cierre" in res.stdout
+              and "importe = saldo al cierre auditado" in res.stdout)
     if res.returncode != 0:
         print(res.stdout + res.stderr)
         return

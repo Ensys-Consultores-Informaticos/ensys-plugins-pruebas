@@ -438,12 +438,17 @@ def main() -> int:
     else:
         suma_flujos = redondear(sum(_neto(f, "OrigenAjustado", "AplicacionAjustada") for f in flujos))
         d = redondear(suma_flujos - variacion)
+        # Sin ningun ajuste aprobado, las lineas de actividad no llevan el criterio del auditor y
+        # la diferencia es trabajo por hacer, no un fallo aritmetico: salia «NO CUADRA» junto a
+        # «SIN HACER» (registro del 28/10/2026). Con ajustes aprobados, si es un descuadre.
         comprobaciones.append((
             "Los flujos de las actividades suman la variación de la tesorería",
-            abs(d) <= TOLERANCIA,
+            True if abs(d) <= TOLERANCIA else (False if aprobados else SIN_HACER),
             f"{variacion:,.2f} € por los dos caminos" if abs(d) <= TOLERANCIA
             else f"los flujos de las actividades ({suma_flujos:,.2f} €) y la variación de la "
-                 f"tesorería ({variacion:,.2f} €) difieren en {d:,.2f} €"))
+                 f"tesorería ({variacion:,.2f} €) difieren en {d:,.2f} €"
+                 + ("" if aprobados else ": sin ajustes aprobados las actividades no están trabajadas, "
+                                         "así que no es un descuadre sino el estado por hacer")))
 
     # y contra el balance, que es el cuadre de verdad
     efectivo = [f for f in hojas(estructura)

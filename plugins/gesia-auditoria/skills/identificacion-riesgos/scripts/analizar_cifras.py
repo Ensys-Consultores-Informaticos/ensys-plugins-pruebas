@@ -807,9 +807,14 @@ def main() -> int:
                   + ("  (+" + str(len(v.get("tambien_en", []))) + " igual)"
                      if v.get("tambien_en") else ""))
     for c in salida["balance"]["concentraciones"][:MAX_LISTA]:
+        # la masa sobre la que se mide el peso, y si va dentro de otra concentracion: la regla de
+        # la narrativa obliga a nombrarla, y el resumen no la traia (registro del 28/10/2026: se
+        # escribio «31,5 % del total activo» sin comprobarlo)
         print("  con " + c["epigrafe"].ljust(10)
               + format(c["peso"] * 100, ".1f").rjust(8) + " %  "
-              + format(c["importe"], ",.0f").rjust(14) + "  " + c["concepto"][:44])
+              + format(c["importe"], ",.0f").rjust(14) + "  " + c["concepto"][:44]
+              + ("  · sobre " + c["masa"] if c.get("masa") else "")
+              + ("  · dentro de " + "; ".join(c["dentro_de"]) if c.get("dentro_de") else ""))
     cn = salida["cifras_narrativa"]
     resumen.solo_fichero(tabla_narrativa(cn, ejercicios, e["denominacion_resultados"],
                                          args.ir_t))

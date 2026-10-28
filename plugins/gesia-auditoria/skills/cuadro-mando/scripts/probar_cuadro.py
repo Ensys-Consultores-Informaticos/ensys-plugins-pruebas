@@ -148,6 +148,8 @@ def main() -> int:
         superan = re.search(r"supera la IR de su area: (\d+)", texto)
         comprobar(superan is not None and superan.group(1) == "2" and "CO · 600" in texto and "TE · 572" in texto
                   and "CO · 400" not in texto, "marca 600 y 572 (superan la IR del area) y no 400")
+        comprobar("CO · 600: variacion 150.000,00 · IR del area 100.000,00" in texto,
+                  "y dice la IR del area junto a cada variacion (registro del 28/10/2026)")
 
         print("5 · casos degradados")
         d = base / "sin_cedula"; d.mkdir()

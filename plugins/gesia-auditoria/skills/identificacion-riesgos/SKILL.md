@@ -359,7 +359,9 @@ automática, y el script rotula de dónde sale la clase (`indicado con --mercant
 Salida `1` → el expediente no tiene cifras suficientes: **para y dilo**.
 
 **Lee el `analisis_resumen.md` que deja al lado, no el JSON.** El resumen trae las
-variaciones y concentraciones disparadas, que es lo que hace falta para elegir, y al
+variaciones y concentraciones disparadas, que es lo que hace falta para elegir —cada
+concentración con la masa sobre la que se mide (`sobre …`) y, si va dentro de otra, cuál
+(`dentro de …`): es la masa que la narrativa tiene que nombrar—, y al
 final la tabla **«Cifras para la narrativa»**: los epígrafes del balance por encima de la
 IR_T y las líneas principales de la cuenta de resultados, con el ejercicio, el anterior,
 la diferencia y la variación, ya convertidos a número y con el signo de Gesia. El JSON
@@ -475,8 +477,15 @@ epígrafes no enseñaban.
 **Lee el `analisis_ra_resumen.md`, nunca el JSON completo.** El de la revisión
 analítica son 98 KB y 127 elementos: leerlo entero se trunca a mitad y la mayor
 parte son ratios sin señal que no vas a usar. El resumen son **2,5 KB** con los
-ratios que sí tienen señal, ya ordenados por relevancia. Al JSON se va solo para el
-detalle de un `CodigoElementoRA` que vayas a citar, con un `grep` de ese código.
+ratios que sí tienen señal, ya ordenados por relevancia, y debajo de cada uno **qué
+calcula** (`calcula: …`): cítalo por eso, nunca por lo que sugiere el nombre. Al JSON se va
+solo para la ficha de un ratio que vayas a citar, con **este comando tal cual** —no con un
+`grep`: el JSON lleva una clave por línea y la clave es `codigo`, así que un grep no saca la
+ficha entera (registro del 28/10/2026: salió vacío)—:
+
+```bash
+python -c "import json,sys; d=json.load(open(sys.argv[1],encoding='utf-8')); print(json.dumps([e for e in d['elementos'] if e.get('codigo')==sys.argv[2]],ensure_ascii=False,indent=1))" "$TRABAJO/analisis_ra.json" AE02
+```
 
 Lee `$TRABAJO/indice.md` y elige, cruzando **las dos fuentes** —lo que
 dispararon los umbrales de las cifras y lo que señaló la revisión analítica— con

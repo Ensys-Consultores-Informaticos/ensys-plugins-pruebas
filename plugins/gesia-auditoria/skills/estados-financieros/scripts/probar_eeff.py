@@ -211,11 +211,18 @@ def _fixture(carpeta: Path) -> dict:
                   linea(5, "F", "C) Flujos de efectivo de las actividades de financiación", ap=50),
                   linea(6, "T", "E) AUMENTO/DISMINUCIÓN NETA DEL EFECTIVO", ap=50)]
     sin_aprobar = [dict(x, Aprobado="False", Origen=0, Aplicacion=0) for x in catalogo]
+    # Y el que salio en Cowork el 28/10/2026: sin ajustes, las actividades a cero y la variacion
+    # de la tesoreria no. Salia «NO CUADRA» junto a «SIN HACER»: es trabajo por hacer.
+    cuadro_sin_ceros = [linea(1, "F", "A) Flujos de efectivo de las actividades de explotación"),
+                        linea(4, "F", "B) Flujos de efectivo de las actividades de inversión"),
+                        linea(5, "F", "C) Flujos de efectivo de las actividades de financiación"),
+                        linea(6, "T", "E) AUMENTO/DISMINUCIÓN NETA DEL EFECTIVO", ap=50)]
     rutas = {}
     for nombre, datos in (("estructura", estructura), ("cuentas", cuentas),
                           ("ejercicios", ejercicios_), ("cuadro", cuadro),
                           ("ajustes", catalogo), ("catalogo", catalogo),
-                          ("cuadro_sin", cuadro_sin), ("sin_aprobar", sin_aprobar)):
+                          ("cuadro_sin", cuadro_sin), ("sin_aprobar", sin_aprobar),
+                          ("cuadro_sin_ceros", cuadro_sin_ceros)):
         rutas[nombre] = carpeta / (nombre + ".json")
         rutas[nombre].write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
     return rutas
@@ -239,6 +246,9 @@ def _papeles(carpeta: Path) -> dict:
         "generar_efe.py sin aprobar": ["--cuadro", r["cuadro_sin"], "--ajustes", r["sin_aprobar"],
                                        "--estructura", r["estructura"],
                                        "--ejercicios", r["ejercicios"]],
+        "generar_efe.py sin aprobar ceros": ["--cuadro", r["cuadro_sin_ceros"], "--ajustes", r["sin_aprobar"],
+                                             "--estructura", r["estructura"],
+                                             "--ejercicios", r["ejercicios"]],
     }
     res = {}
     for clave, args in llamadas.items():
@@ -400,6 +410,14 @@ def _pruebas_uso_ia() -> list:
                         and "SIN HACER" in b.get("cabecera", "")
                         and "TODO CUADRA" not in b.get("cabecera", "")
                         and any(c.startswith("ATENCIÓN, sin hacer") for c in b.get("comprobaciones", []))))
+        salida_c, codigo_c, papel_c = papeles["generar_efe.py sin aprobar ceros"]
+        bc = _bloque(papel_c) if papel_c.exists() else {}
+        pruebas.append(("ETIQUETAS · sin ajustes y con las actividades a cero frente a una variación de "
+                        "tesorería, la diferencia es SIN HACER, no «NO CUADRA» (registro del 28/10/2026; "
+                        f"salio {codigo_c}, etiquetas {bc.get('etiquetas')})",
+                        codigo_c == 1 and "NO CUADRA" not in salida_c
+                        and "NO CUADRA" not in bc.get("etiquetas", [])
+                        and SIN_HACER in bc.get("etiquetas", [])))
         pruebas.append(("ENTREGA · sin ajustes aprobados el script dice en una línea que el estado de "
                         "flujos está SIN HACER, para que el verde de lo demás no se lea como hecho; "
                         "con ajustes aprobados, no lo dice",

@@ -195,6 +195,13 @@ def casos():
     # MCP 1.26.1: configurar() sugiere el ultimo master usado en el equipo
     yield ("el SKILL.md propone el último máster usado si configurar lo sugiere",
            lambda: "master_riesgos" in skill_md and "El último usado en este equipo" in skill_md)
+    # 28/10/2026: el grep de `CodigoElementoRA` nunca encontraba nada (la clave es `codigo`)
+    yield ("el SKILL.md saca la ficha de un ratio con un comando que lee la clave `codigo`, no con grep",
+           lambda: "e.get('codigo')==sys.argv[2]" in skill_md
+           and "con un `grep` de ese código" not in skill_md)
+    yield ("los resúmenes dicen la masa de cada concentración y qué calcula cada ratio",
+           lambda: '"  · sobre " + c["masa"]' in (AQUI / "analizar_cifras.py").read_text(encoding="utf-8")
+           and '"        calcula: "' in (AQUI / "analizar_ra.py").read_text(encoding="utf-8"))
 
 
 def _doc_uso_ia():

@@ -58,7 +58,8 @@ o no se cuenta.
 **3. No se lee el expediente.** Nada de `consultar_gesia`, `consultar_diario`,
 `obtener_entidad` ni `exportar_consulta`. Todo sale de lo que ya ha pasado en
 esta sesión. Se admite una sola llamada, `configurar()` sin parámetros, y solo
-para leer `version_mcp` — **de su respuesta no se copia la razón social del
+para leer `version_mcp` y `version_plugin` (desde el MCP 1.28.2: la versión del plugin
+instalado, que es la del skill) — **de su respuesta no se copia la razón social del
 cliente**, que viene dentro.
 
 **4. Observado o hipótesis, y se distingue.** Cuando esto corre, la ejecución ya
@@ -189,7 +190,7 @@ desarrollador con el repositorio abierto.
 ```markdown
 ## Registro de ejecución
 
-- **Skill:** <nombre> — <versión del plugin y de dónde sale, o «versión: no consta»>
+- **Skill:** <nombre> — <`version_plugin` de configurar(); con un MCP anterior que no la trae, «versión: no consta»>
 - **MCP:** <version_mcp>
 - **Expediente:** <Tab****.gs3>
 - **Fecha:** <dd/mm/aaaa>

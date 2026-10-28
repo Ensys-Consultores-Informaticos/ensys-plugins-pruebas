@@ -195,6 +195,11 @@ def preparar(datos: dict) -> tuple[dict, list[str]]:
     return modelo, avisos
 
 
+def _es(v: float) -> str:
+    """Un importe como se lee en España: 1.347.368,89."""
+    return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def resumen(modelo: dict) -> list[str]:
     """Lo que el modelo cuenta al entregar: recuentos y variaciones que superan la IR del area."""
     lineas = [f"cliente: {modelo['cliente']} · cierre {modelo['cierre']} · ejercicios {', '.join(modelo['ejercicios'])}",
@@ -208,10 +213,11 @@ def resumen(modelo: dict) -> list[str]:
             umbral = (modelo["ir_areas"].get(c["area"]) or {}).get("trabajo") or modelo["ir"]["T"]
             var = s[0] - s[1]
             if umbral and abs(var) > umbral:
-                superan.append((c["area"], c["cuenta"], var))
+                superan.append((c["area"], c["cuenta"], var, umbral))
     lineas.append(f"cuentas cuya variacion del ultimo ejercicio supera la IR de su area: {len(superan)}")
-    for area, cta, var in superan[:15]:
-        lineas.append(f"   {area} · {cta}: {var:,.2f}".replace(",", " "))
+    # con la IR con la que se compara: sin ella no se puede decir cuanto la supera (28/10/2026)
+    for area, cta, var, umbral in superan[:15]:
+        lineas.append(f"   {area} · {cta}: variacion {_es(var)} · IR del area {_es(umbral)}")
     return lineas
 
 

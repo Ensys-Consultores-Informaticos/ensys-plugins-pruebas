@@ -44,12 +44,25 @@ def _eur(v) -> str:
     return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _lado(df) -> str:
+    """'clientes', 'proveedores' o '' por los grupos de las cuentas del extracto. Para redactar
+    la pregunta del modo de pago: «como paga o cobra este cliente» se leia como el auditado o
+    como el tercero, y en proveedores no tenia sentido (registro del 28/10/2026)."""
+    grupos = {str(c).strip()[:2] for c in df["CUENTA"].dropna()}
+    if grupos and grupos <= {"43", "44"}:
+        return "clientes"
+    if grupos and grupos <= {"40", "41"}:
+        return "proveedores"
+    return ""
+
+
 def reconocer(df) -> dict:
     """Todo lo que se puede saber del extracto sin preguntar nada."""
     tiene_fra = "FACTURA" in df.columns
     info = {
         "apuntes": len(df),
         "cuentas": int(df["CUENTA"].nunique()),
+        "lado": _lado(df),
         "columnas": {
             "punteo_previo": "INDICE_PREVIO" in df.columns,
             "numero_documento": tiene_fra,
@@ -246,7 +259,10 @@ def _informe(info: dict) -> list[str]:
     # Estas dos respuestas NO entran en el calculo (no hay parametro que las lleve): son
     # para leer bien el papel y para la entrega. Antes la pregunta prometia «cambia el
     # tamaño de grupo que se busca», y era falso (registro del 10/09/2026).
-    P.append(("¿Como paga o cobra este cliente? No cambia el calculo: sirve para leer los "
+    quien = {"clientes": "¿Como cobra la entidad a sus clientes?",
+             "proveedores": "¿Como paga la entidad a sus proveedores?"}.get(
+        info.get("lado"), "¿Como paga la entidad a sus proveedores y como cobra a sus clientes?")
+    P.append((quien + " No cambia el calculo: sirve para leer los "
               "tamaños de grupo del papel (plazos = grupos de 3-4; remesas o confirming = "
               "grupos grandes por acumulacion) y para decirlo al entregar.",
               ["Plazos (30/60/90)", "Remesas que agrupan varias facturas", "Confirming",

@@ -247,6 +247,12 @@ puede traer la apertura en varios apuntes del 1 de enero, y entonces no se sabe 
 emparejamiento no la intenta. En un expediente real una 4309 salió en `reconocer.py` como «NO
 IDENTIFICABLES (1): varios apuntes el 1 de enero».
 
+**Y si alguna de las N tiene un solo apunte, dilo también al proponerlas** —añade `Count(*) AS
+N` a la consulta del saldo y lo ves—: típicamente una 436 de dudoso cobro, con un único
+movimiento vivo. Entra en el papel como una hoja **sin nada que cancelar**, y el 28/10/2026
+cuatro 436 así llenaron un papel de clientes de hojas vacías. El auditor decide si las deja
+dentro o coge las siguientes.
+
 Con esas cuentas se escribe el `SELECT` del paso 2 con `CUENTA IN ('…','…')`, y el
 recuento que se le dice al auditor es el de esas cuentas.
 
@@ -500,6 +506,14 @@ modelo reescribió el bloque a su manera y se dejó una pregunta entera por el c
 número de documento reutilizado entre ejercicios— y convirtió la de la apertura en un dato
 informativo, así que nadie preguntó por el mayor del ejercicio anterior. La lista del script
 crece y cambia con lo que encuentra; una lista paralela escrita aquí se queda atrasada.
+
+**Si en esta misma conversación ya se ha hecho otra cancelación del mismo expediente**, las
+preguntas que son **del expediente y no del grupo de cuentas** no se repiten: si hay mayor del
+ejercicio anterior y si el número de documento se reutiliza entre ejercicios. Se reutiliza la
+respuesta y se dice en una línea —«se mantiene lo de antes: sin mayor de N-1; el número no se
+reutiliza»—, y el auditor la corrige si quiere. **La del modo de pago se pregunta siempre**:
+cambia entre clientes y proveedores (registro del 28/10/2026: las tres se repitieron enteras
+entre la cancelación de clientes y la de proveedores).
 
 Lo que cambia cada respuesta, para que sepas qué hacer con ella:
 

@@ -258,6 +258,10 @@ def main() -> int:
               + e["elemento"][:42].ljust(42)
               + (format(actual, ">12.4f") if actual is not None else "          — ")
               + "  " + " · ".join(partes))
+        # lo que calcula el ratio, para no interpretarlo por el nombre: AE02 «Margen Bruto de
+        # Ventas» se leyo como ventas menos aprovisionamientos sin serlo (registro del 28/10/2026)
+        if e.get("descripcion"):
+            print("        calcula: " + " ".join(e["descripcion"].split())[:160])
     if len(con_señal) > MAX_LISTA:
         print("  (" + str(len(con_señal) - MAX_LISTA) + " más en el JSON)")
     resumen.guardar(ruta_resumen(args.salida))

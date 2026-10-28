@@ -293,11 +293,16 @@ def main() -> int:
                     "skill no esta entendiendo.")
     else:
         print("  CUADRE     la apertura de balance cuadra a cero")
+    # que importe lleva cada tipo. Sin decirlo, un «-341.42» en pantalla no se sabia hacia que
+    # lado iba (registro del 28/10/2026). La diferencia es la del papel: APERTURA menos CIERRE.
+    que_importe = {"sin_apertura": "importe = saldo al cierre auditado",
+                   "cuenta_nueva": "importe = saldo abierto",
+                   "diferencia": "importe = apertura − cierre"}
     print("  hallazgos  " + str(len(hallazgos)))
     for tipo in ("sin_apertura", "cuenta_nueva", "diferencia"):
         de_ese = [h for h in hallazgos if h["tipo"] == tipo]
         if de_ese:
-            print("    " + tipo + ": " + str(len(de_ese)))
+            print("    " + tipo + ": " + str(len(de_ese)) + "  (" + que_importe[tipo] + ")")
             for h in de_ese[:MAX_LISTA]:
                 marca = ""
                 if h.get("compensacion") == "pareja":
