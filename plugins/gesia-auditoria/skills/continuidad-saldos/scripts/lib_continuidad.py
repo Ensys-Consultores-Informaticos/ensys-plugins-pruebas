@@ -36,17 +36,43 @@ DECIMALES = 2
 GRUPOS_BALANCE = ("1", "2", "3", "4", "5")
 
 # Operadores del FiltroDeApertura que este skill sabe traducir. La notacion la
-# genera el modulo .NET de importacion de Gesia (ForSampling) y no esta
-# especificada, asi que ante un operador desconocido se ABORTA en vez de
-# adivinar: interpretar mal el filtro selecciona el asiento equivocado y el
-# resultado sale plausible y falso.
+# genera el modulo .NET de importacion de Gesia (ForSampling): los nombres son los
+# del codigo que traduce el filtro en GesiaIA, portado de ese importador. Ante un
+# operador desconocido se ABORTA en vez de adivinar: interpretar mal el filtro
+# selecciona el asiento equivocado y el resultado sale plausible y falso.
+#
+# Medido el 28/10/2026 en 391 diarios reales: los 112 que traen filtro usan
+# «Es igual a» o «Comienza por», todos de tipo Texto y de una sola fila. Los
+# nombres anteriores («es distinto de», «empieza por», «termina por») no los
+# genera Gesia; se quedan como sinonimos para no romper nada.
 OPERADORES = {
     "es igual a": "==",
-    "es distinto de": "!=",
+    "es distinto a": "!=",
+    "comienza por": "empieza",
     "contiene": "contiene",
+    "finaliza por": "termina",
+    "no contiene": "no_contiene",
+    # sinonimos anteriores
+    "es distinto de": "!=",
     "empieza por": "empieza",
     "termina por": "termina",
 }
+
+# Operadores que Gesia SI genera y este skill NO traduce: se para diciendo cual es.
+# Ninguno aparece en los 391 diarios medidos, y traducirlos exige decidir como se
+# comparan numeros, fechas y booleanos, que aqui se comparan como texto.
+NO_SOPORTADOS = {
+    "rango": "compara entre Valor1 y Valor2, y aqui el campo se compara como texto",
+    "es": "compara un campo Verdadero/Falso",
+}
+
+# En Gesia, cualquier otro texto en la casilla del operador va tal cual a la consulta
+# como comparador (>, <, >=...). Se para igual, pero diciendo que es eso.
+COMPARADORES = (">", "<", ">=", "<=", "=", "<>")
+
+# Valor1 = «<nulo>» es campo vacio (IS NULL / IS NOT NULL). En GesiaIA no se traduce
+# igual en todos los operadores, asi que no hay una semantica que copiar: se para.
+VALOR_NULO = "<nulo>"
 
 # El filtro vive en CfgNormalizacion, en el registro cuyo Concepto es FiltroDeApertura.
 # Solo se pide Datos: Concepto se llama como la columna del diario que el MCP retiene.
@@ -64,42 +90,61 @@ def salida_utf8() -> None:
             f.reconfigure(encoding="utf-8")
 
 
+def _no_se_traduce(crudo: str, motivo: str) -> dict:
+    return {"ausente": True, "motivo": motivo + ". Se para en vez de adivinar.", "crudo": crudo}
+
+
 def interpretar_filtro(crudo: str) -> dict:
     """Traduce el texto del FiltroDeApertura.
 
     El asiento de apertura se fija al normalizar el diario y NO tiene que ser el
     numero 1: en el expediente de calibracion era el 3495. El filtro tiene esta forma:
 
-        CAMPO|Tipo|Operador|Valor||| descripcion legible
+        CAMPO|Tipo|Operador|Valor1|Valor2|Comparacion| descripcion legible
 
-    Medido en un expediente real:  CONCEPTO|Texto|Es igual a|Apertura|||...
+    Medido en expedientes reales:  CONCEPTO|Texto|Es igual a|Apertura|||...
+                                   CONCEPTO|Texto|Comienza por|Apertura|||...
     El ejemplo de partida era por ASIENTO, asi que el campo, el operador y el
     valor son todos variables y hay que leerlos, no suponerlos.
+
+    Comparacion (Y/O) encadena con la fila siguiente: un filtro de varias
+    condiciones no se traduce, y leer_filtro ya para si hay mas de una fila.
 
     Devuelve {campo, tipo, operador, valor, crudo}, o {ausente: True, motivo}.
     """
     partes = str(crudo or "").split("|")
     if len(partes) < 4:
         return {"ausente": True, "motivo": "filtro ilegible: " + repr(crudo)}
-    operador = partes[2].strip().lower()
+    original = partes[2].strip()
+    operador = original.lower()
     if operador not in OPERADORES:
-        return {
-            "ausente": True,
-            "motivo": (
-                "operador no soportado: " + repr(partes[2]) + ". Los conocidos son "
-                + str(sorted(OPERADORES)) + ". Se para en vez de adivinar."
-            ),
-            "crudo": crudo,
-        }
+        if operador in NO_SOPORTADOS:
+            return _no_se_traduce(crudo, "operador " + repr(original) + " no soportado: "
+                                  + NO_SOPORTADOS[operador])
+        if operador in COMPARADORES:
+            return _no_se_traduce(crudo, "operador " + repr(original) + " no soportado: es un "
+                                  "comparador, y aqui el campo se compara como texto")
+        return _no_se_traduce(crudo, "operador no soportado: " + repr(partes[2])
+                              + ". Los conocidos son " + str(sorted(OPERADORES)))
+    tipo = partes[1].strip()
+    if tipo.lower() == "fecha":
+        return _no_se_traduce(crudo, "filtro sobre un campo de tipo Fecha, y aqui el campo se "
+                              "compara como texto")
+    valor = partes[3].strip()
+    if valor.lower() == VALOR_NULO:
+        return _no_se_traduce(crudo, "filtro por campo vacio (" + VALOR_NULO + ")")
+    if len(partes) > 5 and partes[5].strip():
+        return _no_se_traduce(crudo, "el filtro encadena otra condicion (Comparacion = "
+                              + repr(partes[5].strip()) + ") y solo se traduce una")
     campo = partes[0].strip()
     # el campo va a parar a una consulta: solo un nombre de columna, nada mas
     if not campo.replace("_", "").isalnum():
         return {"ausente": True, "motivo": "campo de filtro raro: " + repr(campo), "crudo": crudo}
     return {
         "campo": campo,
-        "tipo": partes[1].strip(),
+        "tipo": tipo,
         "operador": operador,
-        "valor": partes[3].strip(),
+        "valor": valor,
         "crudo": crudo,
     }
 
@@ -116,7 +161,9 @@ def leer_filtro(ruta) -> dict:
         return {"ausente": True, "motivo": "CfgNormalizacion no tiene FiltroDeApertura"}
     if len(filas) > 1:
         return {"ausente": True,
-                "motivo": "hay " + str(len(filas)) + " FiltroDeApertura, se esperaba 1"}
+                "motivo": "hay " + str(len(filas)) + " FiltroDeApertura: es un filtro de "
+                          "varias condiciones encadenadas con Y/O, y solo se traduce una. "
+                          "Se para en vez de adivinar."}
     clave = next((k for k in filas[0] if str(k).lower() == "datos"), None)
     if clave is None:
         return {"ausente": True, "motivo": "la fila del filtro no trae la columna Datos"}
@@ -125,15 +172,23 @@ def leer_filtro(ruta) -> dict:
 
 def condicion_jet(filtro: dict) -> str:
     """El filtro como condicion de JET, con la misma semantica que aplicar_filtro():
-    texto sin espacios a los lados y sin distinguir mayusculas; un nulo es texto vacio."""
+    texto sin espacios a los lados y sin distinguir mayusculas; un nulo es texto vacio.
+
+    Salvo en los negativos («Es distinto a», «No contiene»): ahi un nulo queda FUERA,
+    como en Gesia, que pasa el filtro a JET sin IIf, y alli NULL <> 'x' no es verdadero.
+    Como texto vacio entraria en la apertura todo apunte que no tenga ese campo."""
     campo = "[" + filtro["campo"] + "]"
     col = "LCase(Trim(IIf(IsNull(" + campo + "), '', " + campo + ")))"
     valor = filtro["valor"].lower().replace("'", "''")
     op = OPERADORES[filtro["operador"]]
-    if op in ("==", "!="):
-        return col + (" = " if op == "==" else " <> ") + "'" + valor + "'"
+    if op == "==":
+        return col + " = '" + valor + "'"
+    if op == "!=":
+        return "(" + campo + " IS NOT NULL AND " + col + " <> '" + valor + "')"
     # en LIKE, % y _ son comodines: el valor se escapa entre corchetes
     lit = valor.replace("[", "[[]").replace("%", "[%]").replace("_", "[_]")
+    if op == "no_contiene":
+        return "(" + campo + " IS NOT NULL AND " + col + " NOT LIKE '%" + lit + "%')"
     patron = {"contiene": "%" + lit + "%", "empieza": lit + "%", "termina": "%" + lit}[op]
     return col + " LIKE '" + patron + "'"
 
@@ -185,15 +240,18 @@ def aplicar_filtro(df: pd.DataFrame, filtro: dict) -> pd.Series:
             "el filtro de apertura usa el campo " + repr(campo) + ", que no existe "
             "en el diario. Columnas: " + str(sorted(df.columns))
         )
+    nulo = df[campo].isna()
     col = df[campo].fillna("").astype(str).str.strip().str.lower()
     valor = filtro["valor"].lower()
     op = OPERADORES[filtro["operador"]]
     if op == "==":
         return col == valor
     if op == "!=":
-        return col != valor
+        return ~nulo & (col != valor)
     if op == "contiene":
         return col.str.contains(valor, regex=False)
+    if op == "no_contiene":
+        return ~nulo & ~col.str.contains(valor, regex=False)
     if op == "empieza":
         return col.str.startswith(valor)
     return col.str.endswith(valor)

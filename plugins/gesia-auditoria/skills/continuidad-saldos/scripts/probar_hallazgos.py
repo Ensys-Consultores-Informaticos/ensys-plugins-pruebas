@@ -20,6 +20,11 @@ MISMAS consultas (SQL_FILTRO y sql_apertura) por ODBC, como haria el MCP, y adem
 comprueba sobre el diario real entero que la condicion traducida a JET selecciona
 exactamente lo mismo que el filtro evaluado en pandas, que es como se hacia antes.
 
+Y el filtro (28/10/2026): cada FiltroDeApertura de la lista se traduce o para con su motivo,
+y cada operador de Gesia selecciona lo mismo en JET y en pandas sobre una copia del diario
+real con un apunte sin el campo del filtro, que es donde se ve si los negativos dejan fuera
+los nulos.
+
 Sigue exigiendo un .smn real, igual que el resto de las pruebas del proyecto.
 Un fixture sintetico desde cero esta pendiente (fase 3). El primer trozo ya esta: las
 diferencias que se compensan (tanda del 21/10/2026) se prueban con filtro, apertura y
@@ -168,6 +173,85 @@ COLUMNA_G_ESPERADA = {"400": "con 570", "570": "con 400", "430": "con 431", "431
                       "523": "ambigua: con 520 o 521"}
 
 
+# Los operadores tal como los escribe Gesia en el FiltroDeApertura (los del codigo que lo
+# traduce en GesiaIA), y lo que tiene que pasar con cada filtro. «ok» se traduce; si no,
+# un trozo del motivo con que para. Revision del 28/10/2026: el skill solo conocia
+# nombres que Gesia no genera, y con un «Comienza por» real se paraba.
+FILTROS = [
+    ("CONCEPTO|Texto|Es igual a|Apertura|||", "ok"),
+    ("CONCEPTO|Texto|Comienza por|Apertura||| CONCEPTO Comienza por Apertura", "ok"),
+    ("CONCEPTO|Texto|Es distinto a|Apertura|||", "ok"),
+    ("CONCEPTO|Texto|Contiene|Apertura|||", "ok"),
+    ("CONCEPTO|Texto|Finaliza por|Apertura|||", "ok"),
+    ("CONCEPTO|Texto|No contiene|Apertura|||", "ok"),
+    ("ASIENTO|Numero|Es igual a|1|||", "ok"),
+    ("CONCEPTO|Texto|empieza por|Apertura|||", "ok"),
+    ("ASIENTO|Numero|Rango|1|5||", "'Rango' no soportado"),
+    ("PUNTEADO|Booleano|Es|Verdadero|||", "'Es' no soportado"),
+    ("ASIENTO|Numero|>=|1|||", "es un comparador"),
+    ("CONCEPTO|Texto|Es igual a|<nulo>|||", "campo vacio"),
+    ("FECHA|Fecha|Es igual a|01/01/2025|||", "tipo Fecha"),
+    ("CONCEPTO|Texto|Comienza por|Apertura||Y|", "encadena otra condicion"),
+    ("CONCEPTO|Texto|Se parece a|Apertura|||", "operador no soportado"),
+]
+
+# Los seis nombres de Gesia que se traducen: sobre el diario real, cada uno tiene que
+# seleccionar en JET lo mismo que en pandas, nulos incluidos. El segundo valor lleva los
+# dos comodines de LIKE, que tienen que buscarse como texto.
+OPERADORES_GESIA = ("Es igual a", "Es distinto a", "Comienza por", "Contiene", "Finaliza por",
+                    "No contiene")
+
+
+def _probar_filtros(comprobar) -> None:
+    """interpretar_filtro: los nombres de Gesia se leen, y lo que no se traduce para con motivo."""
+    from lib_continuidad import condicion_jet, interpretar_filtro
+
+    for crudo, esperado in FILTROS:
+        f = interpretar_filtro(crudo)
+        if esperado == "ok":
+            comprobar("filtro " + repr(crudo.split("|")[2]) + " se traduce: "
+                      + (f.get("motivo") or condicion_jet(f)), not f.get("ausente"))
+        else:
+            comprobar("filtro " + repr(crudo) + " para: " + str(f.get("motivo")),
+                      bool(f.get("ausente")) and esperado in str(f.get("motivo"))
+                      and "Se para en vez de adivinar" in str(f.get("motivo")))
+
+
+def _probar_operadores(real: Path, trabajo: Path, filtro: dict, comprobar) -> None:
+    """Cada operador de Gesia, con el campo y el valor del filtro real, sobre una copia del
+    diario real con un apunte de mas que no lleva ese campo: los diarios medidos no traen
+    ninguno, y sin el los negativos no prueban que dejan fuera los nulos."""
+    import pandas as pd
+    import pyodbc
+
+    from lib_continuidad import aplicar_filtro, condicion_jet, interpretar_filtro
+
+    copia = trabajo / "nulos.smn"
+    shutil.copy2(real, copia)
+    con = pyodbc.connect("DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=" + str(copia) + ";")
+    columnas = [c for c in ("FECHA", "ASIENTO", "CUENTA", "DEBE", "HABER") if c != filtro["campo"].upper()]
+    valores = {"FECHA": "2025-01-01", "ASIENTO": 999999, "CUENTA": "570000000", "DEBE": 0.0, "HABER": 0.0}
+    con.cursor().execute("INSERT INTO Diario (" + ", ".join(columnas) + ") VALUES ("
+                         + ", ".join("?" for _ in columnas) + ")", *[valores[c] for c in columnas])
+    con.commit()
+    con.close()
+    diario = pd.DataFrame(consultar(copia, "SELECT * FROM Diario"))
+    comprobar("la copia lleva un apunte sin " + filtro["campo"],
+              int(diario[filtro["campo"]].isna().sum()) >= 1)
+
+    for nombre in OPERADORES_GESIA:
+        for valor in (filtro["valor"], "a%b_"):
+            f = interpretar_filtro("|".join([filtro["campo"], filtro["tipo"], nombre, valor, "", "", ""]))
+            mascara = aplicar_filtro(diario, f)
+            n_jet = int(consultar(copia, "SELECT Count(*) AS N FROM Diario WHERE "
+                                  + condicion_jet(f))[0]["N"])
+            comprobar("operador " + repr(nombre) + " " + repr(valor) + ": JET y pandas seleccionan "
+                      + str(n_jet) + " y " + str(int(mascara.sum())), n_jet == int(mascara.sum()))
+            if nombre in ("Es distinto a", "No contiene"):
+                comprobar("y deja fuera el apunte sin " + filtro["campo"] + ", como Gesia",
+                          not mascara[diario[filtro["campo"]].isna()].any())
+
+
 def _probar_compensadas(aqui: Path, trabajo: Path, comprobar) -> None:
     """Filtro, apertura y cierre sinteticos -sin diario real- por comparar.py y generar_papel.py."""
     sint = trabajo / "sintetico"
@@ -287,6 +371,8 @@ def main() -> int:
     comprobar("filtro " + filtro["campo"] + " " + filtro["operador"] + " " + repr(filtro["valor"])
               + ": JET y pandas seleccionan los mismos apuntes (" + str(int(m_pandas.sum())) + ")",
               int(m_pandas.sum()) == len(sel) and abs(neto_pandas - neto_jet) < 0.005)
+    _probar_filtros(comprobar)
+    _probar_operadores(real, trabajo, filtro, comprobar)
     columnas = set(df_ap.columns)
     comprobar("la apertura exportada lleva solo las columnas de la prueba: "
               + ", ".join(sorted(columnas)),

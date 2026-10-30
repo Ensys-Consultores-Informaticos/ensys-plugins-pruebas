@@ -32,7 +32,7 @@ auditado.
 **1. El asiento de apertura no se adivina.** Se fija al normalizar el diario y no
 tiene que ser el número 1 —en el expediente de calibración era el 3495—. Vive en la tabla
 `CfgNormalizacion` del `.smn`, en el registro `FiltroDeApertura`. Si ese filtro
-no se puede leer o trae un operador desconocido, **el skill para**. Elegir el
+no se puede leer o trae algo que el skill no traduce, **el skill para**. Elegir el
 asiento por intuición da un resultado plausible y falso.
 
 **2. La comparación va al nivel de auditoría del expediente que se audita,** no
@@ -219,8 +219,8 @@ python "$SKILL/scripts/consulta_apertura.py" --filtro "$TRABAJO/filtro.json"
 python "$SKILL/scripts/consulta_apertura.py" --filtro "$TRABAJO/filtro.json" --sin-campo-apertura
 ```
 
-Salida `2` → **para**: el filtro no se puede leer o trae un operador desconocido, y el asiento
-de apertura no se adivina. Salida `0` → imprime una línea `SQL: …`.
+Salida `2` → **para**: el filtro no se puede leer o trae algo que no se traduce —lo dice el
+mensaje—, y el asiento de apertura no se adivina. Salida `0` → imprime una línea `SQL: …`.
 
 **2d · El asiento de apertura**, con **esa consulta copiada exactamente**, sin quitarle ni
 añadirle nada:
@@ -435,7 +435,7 @@ de su cliente.
 |---|---|
 | Sin diario importado | **para.** No hay apertura que comparar |
 | Sin `CfgNormalizacion` o sin `FiltroDeApertura` | **para.** El asiento de apertura no se adivina |
-| Operador de filtro desconocido | **para**, y dice cuál era |
+| Filtro que no se traduce: operador desconocido, «Rango», «Es», un comparador (`>`, `<`…), `<nulo>`, campo de tipo Fecha o varias condiciones encadenadas | **para**, y dice cuál era. Se traducen «Es igual a», «Es distinto a», «Comienza por», «Contiene», «Finaliza por» y «No contiene» |
 | La apertura no cuadra | **para.** Con la apertura descuadrada la prueba no significa nada |
 | Campo `APERTURA` inexistente | `consulta_apertura.py --sin-campo-apertura`; sigue con el filtro y avisa de que pierde la comprobación cruzada |
 | Expediente con un solo ejercicio | **para.** No hay cierre anterior |
